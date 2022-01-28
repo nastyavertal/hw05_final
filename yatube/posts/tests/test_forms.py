@@ -156,10 +156,7 @@ class PostCreateFormTests(TestCase):
             data=form_data,
             follow=True
         )
-        response = self.authorized_client.get(reverse(
-            'posts:post_detail', kwargs={'post_id': self.post.id})
+        self.authorized_client.get(
+            reverse('posts:post_detail', kwargs={'post_id': self.post.id})
         )
-        form_field = response.context.get('form').fields.get('text')
         self.assertEqual(Comment.objects.count(), comments_count + 1)
-
-

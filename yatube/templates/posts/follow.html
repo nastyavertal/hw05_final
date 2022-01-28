@@ -1,12 +1,9 @@
 {% extends 'base.html' %}
 
-{% block title %}Последние обновления на сайте{% endblock %}
-<h2>Последние обновления  сайте</h2>
+{% block title %}Вы подписаны на этот профиль{% endblock %}
 {% block content %}
-{% load cache %}
-{% cache 20 index_page %}
 
-{% include 'posts/includes/switcher.html' %}
+<h2>Ваши подписки</h2>
 
 <div class="container py-5">
 {% for post in page_obj %}
@@ -18,9 +15,7 @@
     {% endif %}
   {% if not forloop.last %}<hr>{% endif %}
 {% endfor %}
-{% endcache %}
 
 {% include 'posts/includes/paginator.html' %}
-
 </div>
 {% endblock %}

@@ -10,7 +10,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from ..models import Group, Post
+from ..models import Follow, Group, Post
 
 User = get_user_model()
 
@@ -183,20 +183,8 @@ class PostPagesTests(TestCase):
         )
         for url in urls:
             with self.subTest(url=url):
-                response = self.guest_client.get(url)
+                self.guest_client.get(url)
                 self.assertEqual(Post.objects.count(), posts_count + 1)
-
-    def test_cash_index_page(self):
-        """Проверка работы кеша."""
-        cash1 = self.guest_client.get('/').content
-        Post.objects.create(
-            text='Cash text',
-            author=self.user
-        )
-        cash2 = self.guest_client.get('/').content
-        self.assertEqual(cash1, cash2)
-        cache.clear()
-        self.assertNotEqual(cash2, self.guest_client.get('/').content)
 
 
 class PaginatorViewsTest(TestCase):
@@ -253,3 +241,91 @@ class PaginatorViewsTest(TestCase):
         self.assertEqual(
             len(response.context['page_obj']), settings.NUMBER_POSTS)
 
+
+class CashTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.user = User.objects.create_user(
+            username='username'
+        )
+
+    def setUp(self):
+        self.guest_client = Client()
+
+    def test_cash_index_page(self):
+        """Проверка работы кеша."""
+        cash1 = self.guest_client.get('/').content
+        Post.objects.create(
+            text='Cash text',
+            author=self.user
+        )
+        cash2 = self.guest_client.get('/').content
+        self.assertEqual(cash1, cash2)
+        cache.clear()
+        self.assertNotEqual(cash2, self.guest_client.get('/').content)
+
+
+class FollowTest(TestCase):
+    def setUp(self):
+        self.author = User.objects.create_user(
+            username='TestAuthor'
+        )
+        self.user = User.objects.create_user(
+            username='TestUser'
+        )
+        self.authorize_client = Client()
+        self.authorize_client.force_login(self.user)
+
+    def test_auth_user_can_follow(self):
+        """Авторизованный пользователь может подписываться."""
+        follow_count = Follow.objects.count()
+        # Подписываемся
+        self.authorize_client.get(reverse(
+            'posts:profile_follow', kwargs={'username': self.author.username}))
+        Follow.objects.first()
+        self.assertEqual(Follow.objects.count(), follow_count + 1)
+
+    def test_auth_user_can_unfollow(self):
+        """Авторизованный пользователь может отписываться."""
+        follow_count = Follow.objects.count()
+        Follow.objects.create(
+            user=self.user,
+            author=self.author
+        )
+        self.assertEqual(Follow.objects.count(), follow_count + 1)
+        self.authorize_client.get(reverse(
+            'posts:profile_unfollow', kwargs={
+                'username': self.author.username}))
+        self.assertEqual(Follow.objects.count(), follow_count)
+
+    def test_new_post_appear_in_follower_page(self):
+        """Новая запись автора появляется в ленте тех, кто на него подписан."""
+        self.post = Post.objects.create(
+            text='Тестовый текст',
+            author=self.author
+        )
+        Follow.objects.create(
+            author=self.author,
+            user=self.user
+        )
+        response = self.authorize_client.get(reverse('posts:follow_index'))
+        self.assertEqual(response.context['page_obj'][0], self.post)
+
+    def test_new_post_dont_appear_in_follower_page(self):
+        """Новая запись автора не появляется в ленте тех,
+           кто на не него подписан."""
+        self.post = Post.objects.create(
+            text='Тестовый текст',
+            author=self.author
+        )
+        Follow.objects.create(
+            author=self.author,
+            user=self.user
+        )
+        self.second_user = User.objects.create_user(
+            username='username',
+        )
+        self.authorize_client.force_login(self.second_user)
+        response = self.authorize_client.get(reverse('posts:follow_index'))
+        self.assertEqual(len(response.context['page_obj']), 0)

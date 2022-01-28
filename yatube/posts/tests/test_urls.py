@@ -39,9 +39,12 @@ class PostURLTests(TestCase):
         """Страницы доступны любому пользователю."""
         urls_pages_address = {
             reverse('posts:index'): HTTPStatus.OK,
-            reverse('posts:group_list', kwargs={'slug': self.group.slug}): HTTPStatus.OK,
-            reverse('posts:profile', kwargs={'username': self.user}): HTTPStatus.OK,
-            reverse('posts:post_detail', kwargs={'post_id': self.post.id}): HTTPStatus.OK
+            reverse('posts:group_list',
+                    kwargs={'slug': self.group.slug}): HTTPStatus.OK,
+            reverse('posts:profile',
+                    kwargs={'username': self.user}): HTTPStatus.OK,
+            reverse('posts:post_detail',
+                    kwargs={'post_id': self.post.id}): HTTPStatus.OK
         }
         for urls, status in urls_pages_address.items():
             with self.subTest(urls=urls):

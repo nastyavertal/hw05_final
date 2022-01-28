@@ -3,10 +3,9 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.cache import cache_page
 
 from .forms import CommentForm, PostForm
-from .models import Group, Post, User
+from .models import Follow, Group, Post, User
 
 
 def paginator_context(queryset, request):
@@ -44,14 +43,16 @@ def group_posts(request, slug):
 def profile(request, username):
     """Выводит шаблон профа1ла пользователя"""
     template = 'posts/profile.html'
-    # берем запись из модели юзер, где юзернейм соответсвует идентификатору,
-    # который передается в параметре
     author = get_object_or_404(User, username=username)
     posts_count = author.posts.count()
+    # Проверяем подписку
+    following = request.user.is_authenticated and (
+        Follow.objects.filter(user=request.user, author=author).exists())
 
     context = {
         'author': author,
-        'posts_count': posts_count
+        'posts_count': posts_count,
+        'following': following
     }
 
     context.update(paginator_context(author.posts.all(), request))
@@ -120,6 +121,7 @@ def post_edit(request, post_id):
 
 @login_required
 def add_comment(request, post_id):
+    """Выводит форму для комментария."""
     post = Post.objects.get(pk=post_id)
     form = CommentForm(request.POST or None)
     if form.is_valid():
@@ -129,3 +131,37 @@ def add_comment(request, post_id):
         comment.post = post
         comment.save()
     return redirect('posts:post_detail', post_id=post_id)
+
+
+@login_required
+def follow_index(request):
+    """Посты авторов, на которых подписан текущий пользователь."""
+    template = 'posts/follow.html'
+    posts = Post.objects.filter(author__following__user=request.user)
+    context = {
+        'posts': posts
+    }
+    context.update(paginator_context(posts, request))
+    return render(request, template, context)
+
+
+@login_required
+def profile_follow(request, username):
+    """Подписка на автора."""
+    author = get_object_or_404(User, username=username)
+    # Проверяем, есть ли подписка
+    follow = Follow.objects.filter(user=request.user, author=author).exists()
+    # Если не автор и не подписан, делаем подписку
+    if request.user != author or not follow:
+        Follow.objects.create(user=request.user, author=author)
+    return redirect('posts:profile', username=username)
+
+
+@login_required
+def profile_unfollow(request, username):
+    """Отписка от автора."""
+    author = get_object_or_404(User, username=username)
+    follow = Follow.objects.filter(user=request.user, author=author)
+    if follow.exists():
+        follow.delete()
+    return redirect('posts:profile', username=username)
