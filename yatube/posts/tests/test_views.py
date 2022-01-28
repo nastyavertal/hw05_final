@@ -9,7 +9,6 @@ from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
-from django.db import IntegrityError
 
 from ..models import Follow, Group, Post
 
@@ -329,4 +328,3 @@ class FollowTest(TestCase):
         self.authorize_client.force_login(self.second_user)
         response = self.authorize_client.get(reverse('posts:follow_index'))
         self.assertEqual(len(response.context['page_obj']), 0)
-
