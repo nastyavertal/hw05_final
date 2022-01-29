@@ -253,17 +253,19 @@ class CashTests(TestCase):
     def setUp(self):
         self.guest_client = Client()
 
-    def test_cash_index_page(self):
+    def test_cache_index_page(self):
         """Проверка работы кеша."""
-        cash1 = self.guest_client.get('/').content
+        cache1 = self.guest_client.get(reverse('posts:index')).content
         Post.objects.create(
             text='Cash text',
             author=self.user
         )
-        cash2 = self.guest_client.get('/').content
-        self.assertEqual(cash1, cash2)
+        cache2 = self.guest_client.get(reverse('posts:index')).content
+        self.assertEqual(cache1, cache2)
         cache.clear()
-        self.assertNotEqual(cash2, self.guest_client.get('/').content)
+        self.assertNotEqual(
+            cache2, self.guest_client.get(reverse('posts:index')).content
+        )
 
 
 class FollowTest(TestCase):
@@ -282,8 +284,10 @@ class FollowTest(TestCase):
         follow_count = Follow.objects.count()
         self.authorize_client.get(reverse(
             'posts:profile_follow', kwargs={'username': self.author.username}))
-        Follow.objects.first()
+        follow = Follow.objects.first()
         self.assertEqual(Follow.objects.count(), follow_count + 1)
+        self.assertEqual(follow.author, self.author)
+        self.assertEqual(follow.user, self.user)
 
     def test_auth_user_can_unfollow(self):
         """Авторизованный пользователь может отписываться."""

@@ -51,18 +51,44 @@ class PostURLTests(TestCase):
                 response = self.guest_client.get(urls)
                 self.assertEqual(response.status_code, status)
 
-    def test_post_edit_url_exists_at_desired_location(self):
-        """Страница /posts/post_id/edit/ доступна ТОЛЬКО АВТОРУ поста."""
-        if self.post.author == self.user:
-            response = self.authorized_client.get(
-                f'/posts/{self.post.id}/edit/'
-            )
-            self.assertEqual(response.status_code, HTTPStatus.OK)
+    def test_pages_are_available_only_auth_users(self):
+        """Страницы доступны только авторизованным пользователям."""
+        urls_pages_address = {
+            reverse('posts:add_comment',
+                    kwargs={'post_id': self.post.id}
+                    ): HTTPStatus.FOUND,
+            reverse('posts:profile_follow',
+                    kwargs={'username': self.post.author}
+                    ): HTTPStatus.FOUND,
+            reverse('posts:profile_unfollow',
+                    kwargs={'username': self.post.author}
+                    ): HTTPStatus.FOUND
+
+        }
+        for urls, status in urls_pages_address.items():
+            with self.subTest(urls=urls):
+                response = self.authorized_client.get(urls)
+                self.assertEqual(response.status_code, HTTPStatus.FOUND)
 
     def test_post_create_url_exists_at_desired_location(self):
         """Страница по адресу /create/
            доступна только авторизованному пользователю."""
-        response = self.authorized_client.get('/create/')
+        response = self.authorized_client.get(reverse('posts:post_create'))
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+
+    def test_post_edit_url_exists_at_desired_location(self):
+        """Страница /posts/post_id/edit/ доступна ТОЛЬКО АВТОРУ поста."""
+        if self.post.author == self.user:
+            response = self.authorized_client.get(
+                reverse('posts:post_edit',
+                        kwargs={'post_id': self.post.id})
+            )
+            self.assertEqual(response.status_code, HTTPStatus.OK)
+
+    def test_follow_pages_exists_at_desired_location(self):
+        """Страница по адресу /follow/
+           доступна только авторизованному пользователю."""
+        response = self.authorized_client.get(reverse('posts:follow_index'))
         self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_unexisting_page(self):
@@ -77,7 +103,8 @@ class PostURLTests(TestCase):
             f'/profile/{self.post.author}/': 'posts/profile.html',
             f'/posts/{self.post.id}/': 'posts/post_detail.html',
             f'/posts/{self.post.id}/edit/': 'posts/create_post.html',
-            '/create/': 'posts/create_post.html'
+            '/create/': 'posts/create_post.html',
+            '/follow/': 'posts/follow.html'
         }
         for address, template in templates_url_name.items():
             with self.subTest(address=address):

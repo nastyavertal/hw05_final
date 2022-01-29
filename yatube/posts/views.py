@@ -63,15 +63,13 @@ def post_detail(request, post_id):
     """Выводит детальное описание поста и сам пост"""
     template = 'posts/post_detail.html'
     post = get_object_or_404(Post, pk=post_id)
-    author = post.author
-    posts_count = author.posts.count()
+    posts_count = post.author.posts.count()
     form = CommentForm(request.POST or None)
     comments = post.comments.all()
 
     context = {
         'post': post,
         'posts_count': posts_count,
-        'author': author,
         'form': form,
         'comments': comments
     }
@@ -122,7 +120,7 @@ def post_edit(request, post_id):
 @login_required
 def add_comment(request, post_id):
     """Выводит форму для комментария."""
-    post = Post.objects.get(pk=post_id)
+    post = get_object_or_404(Post, pk=post_id)
     form = CommentForm(request.POST or None)
     if form.is_valid():
         comment = form.save(commit=False)

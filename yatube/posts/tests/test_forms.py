@@ -138,18 +138,22 @@ class PostCreateFormTests(TestCase):
         form_data = {
             'text': 'Тестовый текст комментария'
         }
-        self.guest_client.post(
+        response = self.guest_client.post(
             reverse('posts:add_comment', kwargs={'post_id': self.post.id}),
             data=form_data,
             follow=True
         )
+        self.assertRedirects(response, reverse(
+            'users:login') + '?next=' + reverse(
+            'posts:add_comment', kwargs={'post_id': self.post.id}))
         self.assertEqual(Comment.objects.count(), comments_count)
 
     def test_succesful_comment_appear_in_page(self):
         """После успешной отправки комментарий появляется на странице поста."""
         comments_count = Comment.objects.count()
         form_data = {
-            'text': 'Тестовый текст комментария'
+            'text': 'Тестовый текст комментария',
+            'author': self.post.author.username
         }
         self.authorized_client.post(
             reverse('posts:add_comment', kwargs={'post_id': self.post.id}),
@@ -157,6 +161,11 @@ class PostCreateFormTests(TestCase):
             follow=True
         )
         self.authorized_client.get(
-            reverse('posts:post_detail', kwargs={'post_id': self.post.id})
+            reverse('posts:post_detail', kwargs={'post_id': self.post.id}),
         )
+        # Проверяем, что количество комментов изменилось
         self.assertEqual(Comment.objects.count(), comments_count + 1)
+        latest_comment = Comment.objects.get(pk=self.post.id)
+        # Проверяем, что создался коммент
+        self.assertEqual(latest_comment.text, form_data['text'])
+        self.assertEqual(latest_comment.author.username, form_data['author'])

@@ -53,6 +53,10 @@ class Group(models.Model):
     def __str__(self):
         return self.title
 
+    class Meta:
+        verbose_name = 'Группа'
+        verbose_name_plural = 'Группы'
+
 
 class Comment(models.Model):
     post = models.ForeignKey(
@@ -70,6 +74,10 @@ class Comment(models.Model):
     )
     text = models.TextField()
     created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Комментарий'
+        verbose_name_plural = 'Комментарии'
 
 
 class Follow(models.Model):
