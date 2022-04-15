@@ -25,8 +25,12 @@ SECRET_KEY = '2=-3qs54l2i)x0t$&rhvjhx=+vo4a^#lq9##m@7xy=wicj=5mi'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
 
+ALLOWED_HOSTS = [
+    '127.0.0.1',
+    'www.nastya.pythonanywhere.com',
+    'nastya.pythonanywhere.com',
+]
 
 # Application definition
 
